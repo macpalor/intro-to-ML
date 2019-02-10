@@ -1,0 +1,358 @@
+---
+title: "R tutorial"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+---
+
+Below are first some stuff about working with R notebooks and below that is a general "quick and dirty" primer for R.
+
+I'd suggest loading up the [notebook](http://saskeli.kapsi.fi/r/tutu.Rmd) in R studio so you can run stuff yourself while reading.
+
+I'd also suggest opening a preview of the notebook either in a window or viewer pane or alternatively opening the rendered html in a browser. The preview button as well as settings for the preview should be in the top bar of the code window when an R notebook is opened.
+
+# General notebook stuff
+
+In these markdown sections you can write any md compatible stuff you want and it will be rendered as html. 
+
+You can also include stuff like [links](https://rmarkdown.rstudio.com/lesson-15.html) or embedded images.
+
+
+
+Local images can also be embedded with the same command ```![description](relative/path/to/file)```.
+
+_Italics_ are a thing as well as **bold**
+
+R notebooks alsto support latex math modes.
+
+\begin{align*}
+f_0 &= 0 \\
+f_1 &= 1 \\
+f_n &= f_{n - 1} + f_{n - 2}
+\end{align*}
+
+But inline previews are only rendered for general math modes
+
+$$
+Pr\{ |p − \frac{1}{n}\sum_{i = 1}^n X_i | > \epsilon] \leq 2 \exp(−2n\epsilon^2 )
+$$
+
+$\mathrm{\LaTeX}$ can also be included inline in text. As long as it is in inline math mode. (```$ content $```)
+
+As markdown is a superset of html, any html things can be added to the md documents... They may not work as expected however.
+
+<blockquote class="imgur-embed-pub" lang="en" data-id="jhcN1Ke"><a href="https://imgur.com/jhcN1Ke">Ingenious cat toy.</a></blockquote><script async src="//s.imgur.com/min/embed.js" charset="utf-8"></script>
+
+For example the above code for embedding a cool cat gif doesn't render either in the R studio inline preview or the html previe. However if you open the html in a browser you will see a link instead of a cat, and when uploaded uploaded somewhere it apparently works.
+
+In an R notebook code segments are surrounded by backticks. And if you want the code segment to be executable R. You add ```{R}``` to the starting backticks.
+
+A new R chunk in R studio can be created using *ctrl+alt+I*.
+
+# R
+
+### addition
+
+R is an interpreted language and you can use it as a calculator, similarily to python. A line in an R chunk is run with the command *ctrl+Enter*
+
+```{r}
+5 + 4
+```
+
+Variable assingments can be made using either the arrow notation ```<-``` or the more familiar ```=```. Typically the arrow notation is considered more R-ish and preferred.
+
+The below chunk is multiple lines. If you attempt to just run the last line with *ctrl+Enter*, you will get an error message: ```Error: object 'fuu' not found```. This means that the variables have not been assigned. You can either rune the linses one by one using *ctrl+Enter* or alternatively run the entire chunk with *ctrl+shift+Enter*
+
+```{r}
+fuu <- 5
+bar = 4
+fuu + bar
+```
+
+For those familiar with matlab or for people in general who get annoyed at the constant outputting of stuff without asking. There is the ```invisible``` function that will disable printing of the result of an operation. There is no more convenient way to do this to my knowledge (like ```;``` in matlab).
+
+```{r}
+invisible(fuu + bar)
+```
+
+Conversely it may sometimes be practical to see what the result of an assignment actually was. For this there is happily a fairly practical syntax. Just enclosing the assingment in brackets.
+
+```{r}
+(fuu <- 5)
+```
+
+To create functions we use the following syntax in R:
+
+```{r}
+summer <- function(a, b) {
+  a + b
+}
+```
+
+This comprises of the name of the function, the keyword ```function```, the input parameters of the function in brackets and the function body. In the function body the result of the last evaluated statement will be returned by default. So may times there is no need for an explicit ```return``` statement.
+
+You can also supply default values for function paremters. E.g. to set the default value for $b$ to $1$ you define your function as ```function(a, b=1)```. In this case the function could be called with either one or two parameters.
+
+```{r}
+summer(fuu, bar)
+```
+
+The function can be called as one would expect.
+
+### Looping
+
+is something you should avoid in R. But here is the syntax anyway.
+
+```{r}
+for (i in 0:11) {
+  print(summer(i, i))
+}
+```
+
+The reason loops should be avoided is that they tend to be very slow in R. Typically they can be avoided by calling inbuilt functions like "list apply".
+
+List apply or lapply takes as parameter an iterable, and a function. lapply will apply the function on each element of the iterable and return a list of the results.
+
+The notations ```start:end``` is used to create an integer vector with the first value ```start``` and the last value ```end```. Note that the limits are inclusive.
+
+The function definition in the second parameter is the R syntax for anonymous functions.
+
+```{r}
+lapply(0:11, function(x) summer(x, x))
+```
+
+You may note that the outputting of the list looks (and is) a bit strange. Slightly more on lists will follow later.
+
+If you want more information on lapply or any other R function you can run commands ```?lapply``` or ```help(lapply)``` to get the help description for the function in question. These will almost allways contain examples, but these vary from very informative to completely useless.
+
+### plotting
+
+Below is the single line of code included in the R notebook template. ```plot``` is a function that probably does what you'd expect. ```cars``` is the name of a variable that comes pre-defined in R (or possibly the R notebook libraries).
+
+```{r}
+plot(cars)
+```
+
+If we take a look at ```cars```
+
+```{r}
+cars
+```
+
+We see a browseable data frame with the two columns ```speed``` and ```distance```. The plot function extracted these and made a scatter plot.
+
+### A hint of predicting
+
+An other useful command for dataframes is ```summary```. This print some simple statistics for each column of a data frame given.
+
+```{r}
+summary(cars)
+```
+
+Accessing columns in a data set can be done with the ```$``` operator. This will return a vector of the elements in the column.
+
+```{r}
+cars$dist
+```
+
+The more common ```cars["dist"]``` command would also work, but this returns a data frame with the specified column instead of the vector.
+
+Now to do some very simple modelling. Let's say we want to predict the distance value given the speed. Here we fit a linear model on the cars data.
+
+```{r}
+y <- cars$dist
+x <- cars$speed
+(model <- lm(y ~ x))
+```
+
+Here we extract the $x$ and $y$ vectors from the cars data frame and give them to the ```lm``` function in the form of a formula. Here ```y ~ x``` means that we want $y$ as a function of $x$. In the output we see the formula supplied as well as the learned intercept and multiplier for $x$.
+
+Let's extract the coefficients:
+
+```{r}
+(k = model$coefficients[2])
+(i = model$coefficients[1])
+```
+
+Note that R data structures are $1$-indexed. So the first coefficient (the intercept) has index $1$.
+
+### more plotting
+
+Now with the coefficients we can check to se how well they seem to match our data.
+
+```{r}
+plot(cars)
+min_s = min(cars$speed)
+max_s = max(cars$speed)
+lines(min_s:max_s, i + k * (min_s:max_s), col = "red")
+```
+
+Here we essentialy plotted what the model would predict given values from the smallest to the largest in speed.
+
+### more and better predicting
+
+The above building of the model may have seemed a bit inconvenient so let's do the same in a better way.
+
+```{r}
+(lm.cars <- lm(dist ~ speed, data=cars))
+```
+
+Here we specified the formula in relation to the cars data frame.
+
+Now to predict, instead of extracting the coefficients, we can use the ```predict``` function that takes as parameters a model and data.
+
+Especially if you are used to python and sklearn you might think think that the following would work. Given that the dimensions match.
+
+
+
+It doesn't.
+
+This is because R expects to find something called ```speed``` in the given input. ```speed``` was after all the thing the model was told to model by in the formula.
+
+Armed with this knowledge, we can create something that contains ```speed``` for R to use in predicting.
+
+
+```{r}
+ndf <- data.frame("speed" = seq(min_s, max_s, 0.5))
+```
+
+This is a data frame containing a single column with the values we want to predict. (The ```seq``` function is another way to create vectors with given start and end points, here you can additionally specify the distance between adjacent values)
+
+Now we can predict using this new data frame
+
+```{r}
+plot(cars)
+lines(ndf$speed, predict(lm.cars, ndf), col="blue")
+```
+
+### Some linear algebra and data structures
+
+Vectors were mentioned previously. Here's how to make vectors with arbitrary values.
+
+```{r}
+(a <- c(1, 2, 3, 4, 5))
+```
+
+The ```c``` stands for concatenate. Vectors may only contain a single datatype.
+
+```{r}
+(a[5] = "fuu")
+```
+
+But for some reason we can assign "foo" to the fifth position of the vector.
+
+```{r}
+a
+```
+
+The entire vector was converted into a vector of strings!
+
+To create a matrix with arbitrary values we can use the ```matrix``` funciton that takes as parameters the values to fill the matrix with and at least one of ```nrow``` and ```ncol```. If only the number of columns or the number of rows was given, R will infer the missing information from the size of the given data and the given argiment. A matrix can be filled either by row owr by column.
+
+```{r}
+(mat <- matrix(c(1, 2, 3, 4, 5, 6), nrow = 2, ncol = 3, byrow = T))
+```
+
+element wise matrix multpilication can be done by the usual multiplication function ```*```:
+
+```{r}
+mat * mat
+```
+
+(a square matrix :) or a matirx of squares)
+
+For matrix multiplication we have to use the ```%*%``` function. (The ```t``` function is for matrix transpose.)
+
+```{r}
+t(mat) %*% mat
+mat %*% t(mat)
+```
+
+Good functions for creating matrices include ```matrix(1, n, m)``` to create a $n\times m$ matrix of ones, ```matrix(0, n, m)```, ```diag(1, n)``` to create a $n\times n$ identity matrix and ```diag(vec)``` to create a matrix with ```vec``` as the diagonal.
+
+Matrices are indexed with the common bracket notation:
+
+```{r}
+mat[1, 3]
+```
+is the third element of the first row.
+
+Slicing is also important. That is selecting parts of matrices.
+
+```{r}
+mat[, 3]
+```
+
+Here we selected the entire third column.
+
+```{r}
+mat[, c(1, 3)]
+```
+
+The first and third column.
+
+```{r}
+mat[-1, ]
+```
+
+Not the first row
+
+```{r}
+mat[1, c(1, 3)]
+```
+
+The first elements of the first and third column
+
+```{r}
+diag(1, 10)[-(1:3), 2:4]
+```
+
+A part of a $10\times 10$ identity matrix
+
+In R structures with more dimensions are called arrays. These can be created with the ```array``` function that takes the data and dimensions as parameters. So a $2\times 2 \times 2$ cube of ```1:8``` would be:
+
+```{r}
+array(1:8, dim=c(2, 2, 2))
+```
+
+Lists can contain any combinations of data types.
+
+```{r}
+(l = list(T, a, mat, "fuu"))
+```
+
+To access elements of lists you must use a double bracket.
+
+```{r}
+l[[1]]
+```
+
+### Installing packages and usig them
+
+To install packages the ```install.packages``` function is used. For example to install all the data sets used in the course book:
+
+```{r}
+install.packages("ISLR")
+```
+
+And to use the library call ```library(ISLR)```:
+
+```{r}
+library(ISLR)
+```
+
+For whatever reason the above chunk does not render.
+
+Now you can access (and work with) the data sets in the library:
+
+```{r}
+data(Auto)
+summary(Auto)
+```
+
+```{r}
+hist(Auto$horsepower)
+```
+

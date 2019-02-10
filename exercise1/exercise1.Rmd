@@ -1,0 +1,320 @@
+
+---
+title: "Introduction to Machine Learning Exercise 1"
+output:
+  html_document:
+    df_print: paged
+    code_folding: show
+    highlight: tango
+  pdf_document: 
+    highlight: tango
+  html_notebook: default
+---
+
+# Problem 1
+### a)
+\begin{align*}
+\alpha &= 2e^{-2n\epsilon^2} \\
+\Rightarrow \ln\alpha &= \ln 2 -2n\epsilon^2 \\
+\Rightarrow \epsilon &= \pm\sqrt{\frac{\ln 2-\ln\alpha}{2n}}.
+\end{align*}
+The negative solution can be ignored because $\epsilon\geq 0$. The width of the interval $[n(p-\epsilon),n(p+\epsilon)]$ is then $$n(p+\epsilon)-n(p-\epsilon)=2n\epsilon=\sqrt{2n(\ln 2-\ln\alpha)}.$$ For $n=10,100,1000$ and $\alpha=0.05$ we get the following values for the width:
+
+```{r, echo=FALSE, results='asis'}
+anna <- c(10,100,1000)
+width <- sqrt(2*anna*(log(2)-log(0.05)))
+taulukko1 <- data.frame("n"=anna, "width"=width)
+library(knitr)
+kable(taulukko1, "markdown")
+```
+
+### b)
+Define a function to calculate the confidence intervals for any $n,p$ with $\alpha=0.05$:
+```{r}
+confidence_interval <- function(n, p) {
+  alpha <- 0.05
+  epsilon <- sqrt((log(2)-log(alpha))/(2*n))
+  return(c(n*(p-epsilon), n*(p+epsilon)))
+}
+```
+Next we define a function to return the fraction of outcomes inside a given interval out of all repetitions:
+```{r}
+interval_test <- function(n, p) {
+  alpha <- 0.05
+  repetitions <- 10000
+  values <- rbinom(10000, n, p)
+  interval <- confidence_interval(n, p)
+  count <- 0 #number of outcomes inside a given interval
+  
+  for (i in values) {
+    if (i >= interval[1] && i <= interval[2]) {
+      count <- count + 1
+    }
+  }
+  return(count/repetitions)
+}
+```
+Finally, we run the above function for $n=10,100,1000$ and $p=0.5,0.9,0.99$.
+```{r}
+n <- c(10, 100, 1000)
+p <- c(0.5, 0.9, 0.99)
+
+for (i in n) {
+  for (j in p) {
+    cat("\t n =", i, "\t p =", j, "\t fraction =", interval_test(i,j), "\n", sep = " ")
+  }
+}
+```
+As expected, all fractions are greater than 95 %.
+
+### c)
+Now we have 
+$$
+P(\bigcup_{i=1}^k A_i)\leq \sum_{i=1}^k P(A_i)\leq 2e^{-2n\epsilon^2}=2ke^{-2n\epsilon^2}.
+$$
+Set this equal to $\alpha$ and solve for $\epsilon$
+\begin{align*}
+\alpha &= 2ke^{-2n\epsilon^2} \\
+\Rightarrow \ln\alpha &= \ln 2k -2n\epsilon^2 \\
+\Rightarrow \epsilon &= \sqrt{\frac{\ln 2k-\ln\alpha}{2n}}.
+\end{align*}
+Thus the width of the interval $[n(p-\epsilon),n(p+\epsilon)]$ is 
+$$
+n(p+\epsilon)-n(p-\epsilon)=2n\epsilon=\sqrt{2n(\ln 2k-\ln\alpha)}.
+$$
+Increasing the number of classifiers $k$ widens the confidence interval, but quite slowly ($\mathcal{O}(\sqrt{\ln k})$) compared to increasing the sample size $n$. The widths for $n=10,100,1000$ and $k=1,10,100$ are given in the table below.
+
+```{r, echo=FALSE, results='asis'}
+anna <- c(10,100,1000)
+koo <- c(1,10,100)
+taulukko2 <- matrix(0, 3, 3)
+for (i in 1:3) {
+  taulukko2[i,] <- sqrt(2*anna[i]*(log(2*koo)-log(0.05)))
+}
+rownames(taulukko2) <- c("n=10", "n=100", "n=1000")
+colnames(taulukko2) <- c("k=1", "k=10", "k=100")
+
+
+#taulukko2 <- data.frame("n"=anna, "width"=width)
+library(knitr)
+kable(taulukko2, "markdown")
+```
+
+### d)
+Repeat the process we did previously, but draw $k=1,10,100$ binomial values instead of $10000$.
+```{r}
+confidence_interval <- function(n, p, k) {
+  alpha <- 0.05
+  epsilon <- sqrt((log(2*k)-log(alpha))/(2*n))
+  return(c(n*(p-epsilon), n*(p+epsilon)))
+}
+```
+
+```{r}
+interval_test <- function(n, p, k) {
+  alpha <- 0.05
+  repetitions <- 10000
+  
+  count <- 0 
+  
+  for (rep in 1:repetitions) {
+    values <- rbinom(k, n, p) #draw k binomial values
+    interval <- confidence_interval(n,p,k)
+    
+    #increment counter only if all values drawn are inside the confidence interval
+    if (length(values[values <= interval[2] && values >= interval[1]]) == k) {
+          count <- count + 1
+        }
+  }
+  return(count/repetitions)
+}
+```
+Finally, we run the above function for $n=10,100,1000$, $p=0.5,0.9,0.99$ and $k=1,10,100$.
+```{r}
+n <- c(10, 100, 1000)
+p <- c(0.5, 0.9, 0.99)
+k <- c(1,10, 100)
+
+for (i in n) {
+  for (j in p) {
+    for (l in k) {
+      cat("\t n =", i, "\t p =", j, "\t k =", l, "\t fraction =",
+          interval_test(i,j,l), "\n", sep = " ")
+    }
+  }
+}
+```
+Again all fractions are greater than 95 %.
+
+
+# Problem 2
+### a)
+```{r}
+college <- read.csv("College.csv")
+```
+
+### b)
+```{r}
+college
+```
+```{r}
+rownames(college)=college[,1]
+college
+```
+```{r}
+college=college[,-1]
+college
+```
+
+### c)
+Print a summary of the data.
+```{r}
+summary(college)
+```
+Produce a scatterplot matrix of the first 10 columns of the data.
+```{r}
+pairs(college[,1:10])
+```
+```{r}
+plot(college$Private, college$Outstate)
+```
+
+Create the new variable ```Elite``` as instucted.
+
+
+```{r}
+Elite=rep("No",nrow(college))
+Elite[college$Top10perc >50]="Yes"
+Elite=as.factor(Elite)
+college=data.frame(college,Elite)
+
+summary(college)
+```
+There appears to be 78 elite universities. Now produce the boxplots.
+```{r}
+plot(college$Elite, college$Outstate)
+```
+
+
+Let's make four histograms of the acceptance rate with differing numbers of bins.
+```{r}
+par(mfrow=c(2,2))
+
+title <- "Histogram of acceptance rate"
+hist(college$Accept/college$Apps, breaks = 5, col = "magenta", main = title)
+hist(college$Accept/college$Apps, breaks = 25, col = "red", main = title)
+hist(college$Accept/college$Apps, breaks = 50, col = "gold", main = title)
+hist(college$Accept/college$Apps, breaks = 100, col = "gray0", main = title)
+
+par(mfrow=c(1,1)) #set the graphics parameter back to default
+```
+
+
+# Problem 3
+### a)
+
+```{r setup, echo=FALSE}
+library(knitr)
+library(reticulate)
+opts_chunk$set(engine.path = '/usr/bin/python3')
+knitr::knit_engines$set(python = reticulate::eng_python)
+```
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(123456)
+
+x = np.random.uniform(-3.0, 3.0, 30)
+y = 2 + x - 0.5*np.power(x, 2) + np.random.normal(0.0, 0.4, 30)
+
+interval = np.linspace(-3.0,3.0, 1000)
+MSE = np.zeros(11)
+models = []
+
+for k in range(11):
+  coefs, res, _, _, _ = np.polyfit(x, y, deg = k, full = True)
+  MSE[k] = res/len(y)
+  fit = np.poly1d(coefs)
+  models.append(fit)
+  plt.subplot(4, 3, k+1)
+  plt.plot(x,y, '.b', interval, fit(interval), 'r-')
+  plt.title("K = %d" % k)
+  
+plt.subplots_adjust(wspace = 0.3, hspace = 0.7)
+plt.show()
+plt.close()
+```
+Plot the MSE as a function of $K$.
+
+```{python}
+
+plt.plot(range(11), MSE, 'o-', label = "Training")
+plt.title("MSE as a function of K")
+plt.xlabel("K")
+plt.ylabel("MSE")
+plt.show()
+```
+
+### b)
+Generate a test set.
+
+```{python}
+x_test = np.random.uniform(-3.0, 3.0, 1000)
+y_test = 2 + x_test - 0.5*np.power(x_test, 2) + np.random.normal(0.0, 0.4, 1000)
+```
+
+Calculate the test MSE and compare to the training MSE.
+```{python}
+#Computes the (mean) squared error
+def computeSqErr(y, yhat, n = 1):
+  return(np.sum(np.power(np.subtract(y,yhat),2))/n)
+  
+MSE_test = np.zeros(11)
+for k in range(11):
+  MSE_test[k] = computeSqErr(y_test, models[k](x_test), len(y_test))
+  
+plt.plot(range(11), MSE_test, 'ro-', label = "Test")
+plt.legend()
+plt.show()
+plt.close()
+```
+
+The training error decreases as $K$ increases, but the test error seems to increase as $K>2$, at least when $K$ is close to 10.
+
+### c)
+```{python}
+
+y_split = np.split(y, 10)
+x_split = np.split(x, 10)
+
+SqErr = np.zeros(11)
+for k in range(11):
+  SqErr_k = 0
+  for j in range(10):
+    
+    x_train = np.ndarray.flatten(np.delete(x_split, j, axis = 0))
+    y_train = np.ndarray.flatten(np.delete(y_split, j, axis = 0))
+    x_test = x_split[j]
+    y_test = y_split[j]
+    
+    coeffs = np.polyfit(x_train, y_train, deg = k)
+    fit = np.poly1d(coeffs)
+    SqErr_k += computeSqErr(y_test, fit(x_test))
+    
+  SqErr[k] = SqErr_k 
+```
+
+
+```{python}
+plt.plot(range(11), SqErr, "-bo")
+plt.xlabel("K")
+plt.ylabel("Squared error")
+plt.title("10-fold cross validation squared error as a function of K")
+plt.show()
+plt.close()
+print("The minimum error is given by K = %d" % np.argmin(SqErr))
+```
+
+The cross-validated error decreases first, and increases for $K>2$. The minimum error is given by $K=2$, which sounds reasonable since the generated polynomial $y$ is of order 2.
